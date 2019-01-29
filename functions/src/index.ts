@@ -3,12 +3,13 @@ const admin = require('firebase-admin');
 const firebase = require('firebase');
 const express = require('express');
 const LatLng = require('./LatLng');
+const apiRoutes = require('./apiRoutes');
 
 // Start writing Firebase Functions
 // https://firebase.google.com/docs/functions/typescript
 //initialize firebase-admin - used for firestore db
 admin.initializeApp(functions.config().firebase);
-let db = admin.firestore();
+const db = admin.firestore();
 
 
 exports.helloWorld = functions.https.onRequest((request, response) => {
@@ -38,10 +39,29 @@ app.get('/normal/:lat/:lng', (request, response) => {
 });
 
 app.get('/read', (request, response) => {
-	db.collection('twa').get().then((snapshot) => {
-		response.send(snapshot);
-	}).catch((err) => {
+	db.collection('api').get()
+  .then((snapshot) => {
+    let str = '';
+		snapshot.forEach((doc) => {
+      console.log(doc.id, '=>', doc.data());
+      let data = doc.data();
+      str = str + doc.id + ' => <br>apiKey ' + data.apiKey + '<br>callsLeft ' + data.callsLeft + '<br>lastAccessed '+ data.lastAccessed;
+    });
+    response.send(str);
+	})
+  .catch((err) => {
+    //console.log('Error getting documents', err);
 		response.send('Error getting documents', err);
 	});
 
+});
+
+//for actual API
+app.use('/api', apiRoutes);
+app.use((error, req, res, next) => {
+  res.json({
+    error: {
+      message: error.message
+    }
+  });
 });
