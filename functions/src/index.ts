@@ -1,6 +1,6 @@
 const functions = require('firebase-functions');
-const admin = require('firebase-admin');
 const firebase = require('firebase');
+const {db} = require('./admin');
 const express = require('express');
 const LatLng = require('./LatLng');
 const apiRoutes = require('./apiRoutes');
@@ -8,8 +8,8 @@ const apiRoutes = require('./apiRoutes');
 // Start writing Firebase Functions
 // https://firebase.google.com/docs/functions/typescript
 //initialize firebase-admin - used for firestore db
-admin.initializeApp(functions.config().firebase);
-const db = admin.firestore();
+// admin.initializeApp(functions.config().firebase);
+// const db = admin.firestore();
 
 
 exports.helloWorld = functions.https.onRequest((request, response) => {
@@ -43,9 +43,9 @@ app.get('/read', (request, response) => {
   .then((snapshot) => {
     let str = '';
 		snapshot.forEach((doc) => {
-      console.log(doc.id, '=>', doc.data());
-      let data = doc.data();
-      str = str + doc.id + ' => <br>apiKey ' + data.apiKey + '<br>callsLeft ' + data.callsLeft + '<br>lastAccessed '+ data.lastAccessed;
+      // console.log(doc.id, '=>', doc.data());
+      const data = doc.data();
+      str = str + '<br>' + doc.id + ' => <br>apiKey=' + data.apiKey + '<br>callsLeft=' + data.callsLeft + '<br>lastAccessed='+ data.lastAccessed;
     });
     response.send(str);
 	})
