@@ -1,6 +1,6 @@
 const functions = require('firebase-functions');
 const firebase = require('firebase');
-const {db} = require('./admin');
+const {db, firestore} = require('./admin');
 const express = require('express');
 const LatLng = require('./LatLng');
 const apiRoutes = require('./apiRoutes');
@@ -11,10 +11,11 @@ const apiRoutes = require('./apiRoutes');
 // admin.initializeApp(functions.config().firebase);
 // const db = admin.firestore();
 
+// const firestore = firebase.firestore;
 
-exports.helloWorld = functions.https.onRequest((request, response) => {
- response.send("Hello from Firebase!");
-});
+// exports.helloWorld = functions.https.onRequest((request, response) => {
+//  response.send("Hello from Firebase!");
+// });
 
 const app = express();
 
@@ -39,21 +40,47 @@ app.get('/normal/:lat/:lng', (request, response) => {
 });
 
 app.get('/read', (request, response) => {
-	db.collection('api').get()
+  let str = "<h1>Hello Reader</h1>";
+  db.collection('twa').where('name', '==','one.two.three').get()
   .then((snapshot) => {
-    let str = '';
-		snapshot.forEach((doc) => {
-      // console.log(doc.id, '=>', doc.data());
-      const data = doc.data();
-      str = str + '<br>' + doc.id + ' => <br>apiKey=' + data.apiKey + '<br>callsLeft=' + data.callsLeft + '<br>lastAccessed='+ data.lastAccessed;
-    });
-    response.send(str);
-	})
-  .catch((err) => {
-    //console.log('Error getting documents', err);
-		response.send('Error getting documents', err);
-	});
+    if(snapshot.size === 0) {
+      response.send(str + 'snapshot size = 0');
+    } else {
+      str = str + '<br>snapshot size = ' + snapshot.size;
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        str = str + '<br>docId = ' + doc.id;
+        str = str + '<br>name = ' + data.name;
+        str = str + `<br>Word[0] = ${data.words[0]}`;
+        str = str + `<br>Word[1] = ${data.words[1]}`;
+        str = str + `<br>Word[2] = ${data.words[2]}`;
+        str = str + '<br>square.bl = ' + data.square.bl.latitude;
+        str = str + '<br>square.tl = ' + data.square.tl.latitude;
+        str = str + '<br>square.tr = ' + data.square.tr.latitude;
+        str = str + '<br>square.br = ' + data.square.br.latitude;
+        str = str + '<br>newTime = ' + data.newTime;
+        let acc = data.accessed;
+        acc = firestore.Timestamp.fromDate(acc)
+        const flag = data.newTime<acc;
+        str = str + `<br>newTime &lt; accessed = ${flag}`;
+        str = str + '<br>square.accessed = ' + acc;
+        str = str + '<br>square.accessedseconds = ' + acc.seconds;
 
+        const up = {
+          done: 'I guess 3',
+          newTime: firestore.Timestamp.now(),
+          newLoc: new firestore.GeoPoint(27.000027, 30.000030)
+        };
+        doc.ref.update(up);
+        str = str + `<br>newNewTimeseconds = ${up.newTime.seconds}`;
+      });
+      response.send(str);
+    }
+  })
+  .catch((err) => {
+    console.log("ERROR READ", err);
+    response.send("someerror"+err);
+  });
 });
 
 //for actual API
