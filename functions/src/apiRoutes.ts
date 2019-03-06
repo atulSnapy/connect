@@ -9,7 +9,7 @@ const LatLng = require('./LatLng');
 const router = express.Router();
 
 
-
+//route for API
 router.get('/:apiKey/:value', (request, response, next) => {
   //input
   const ins = {
@@ -20,55 +20,71 @@ router.get('/:apiKey/:value', (request, response, next) => {
   };
 
   //validate value?
-  const arr = ins.value.split(',');
+  let arr = ins.value.split(',');
   if(arr.length === 2) {
     arr.forEach((val) => {
       if(isNaN(val)) {
+        //when either lat or lng ar not number
         const error = new Error('Lat and Lng can be number only');
         return next(error);
       }
     });
     if(arr[0]<-89 || arr[0]>89) {
+      //when lat is <-89 or >89
       const error = new Error('Lat value should be between [-89,89]');
       return next(error);
     }
     if(arr[1]<-179 || arr[1]>179) {
+      //when lng is <-179 or >179
       const error = new Error('Lng value should be between [-179, 179]')
       return next(error);
     }
+    //setting value type as "loc"
     ins.valueType = 'loc'
   }
-  else if(arr.length === 3) {
+  else {
+    let arr = ins.value.split('.');
+  }
+  if(arr.length === 3) {
     const letters = /^[A-Za-z]+$/;
     arr.forEach((word) =>{
       if(word.match(letters)=== null) {
+        //if twa contain anything except alphabets
         const error = new Error('TWA is alphabet only, can not contain anything except aplhabets');
         return next(error);
       }
     });
+    //set value as "twa"
     ins.valueType = 'twa';
   }
   else {
+    //when both twa and loc check fail
     const error = new Error(ins.apiKey + "/" + ins.value + " Value Invalid, allowed type 12,12 or one,two,three");
     return next(error);
   }
+  //set valueArr to value (it can be loc or twa)
   ins.valueArr = arr.slice();
 
   //validate apiKeyLength
-  if(ins.apiKey.length !== 7) {
-    const error = new Error(ins.apiKey + ' API Key length should be 7, but it is ' + ins.apiKey.length);
+  if(ins.apiKey.length !== 20) {
+    const error = new Error(ins.apiKey + ' API Key length should be 20, but it is ' + ins.apiKey.length);
     return next(error);
   }
 
   //check if apiKey exists and valid
-  const apiRef = db.collection('api').where('apiKey', '==', ins.apiKey);
+  // const apiRef = db.collection('api').where('apiKey', '==', ins.apiKey);
+
+  // api doc reference
+  const apiRef = db.collection('api').doc(ins.apiKey);
   apiRef.get()
   .then((snapshot) => {
     if(snapshot.size === 0) {
+      // when we do not get any doc i.e. apiKey dows not exists
       const error = new Error('API Key does not exists');
       return next(error);
     }
     if(snapshot.size > 1) {
+      //when we get more than 1 doc i.e. many api with same apiKey exists
       let docIds = '';
       snapshot.forEach((doc) => {
         docIds = docIds + '_' + doc.id + '_';
@@ -79,13 +95,15 @@ router.get('/:apiKey/:value', (request, response, next) => {
     }
     snapshot.forEach((doc) => {
       const data = doc.data();
-      if(data.callsLeft === 0) {
+      if(data.callsleft === 0) {
+        //when no calls are left
         const error = new Error('API Limit exhausted');
         return next(error);
       }
       doc.ref.update({
-        callsLeft: data.callsLeft-1,
-        lastAccessed: new Date()
+        //reduce callsleft counter
+        callsleft: data.callsleft-1,
+        lastaccess: new Date()
       });
       if(ins.valueType === 'loc') {
         const lat = ins.valueArr[0];
@@ -93,35 +111,38 @@ router.get('/:apiKey/:value', (request, response, next) => {
         const loc = new LatLng(lat, lng);
         const str = "<h1>loc=>("+loc.lat+","+loc.lng+")</h1><h1>fLoc=>("+loc.fLat+","+loc.fLng+")</h1>";
         return response.send(str);
-      } 
+      }
       if(ins.valueType === 'twa') {
-        const twaRef = db.collection('twa').where('name', '==', ins.value);
-        twaRef.get()
-        .then((twaSnapshot) => {
-          if(twaSnapshot.size === 0) {
+        // const twaRef = db.collection('twa').where('name', '==', ins.value);
+        // get twaRef i.e. address doc Ref
+        const addRef = db.collection('add').where('twa', '==', ins.value);
+        addRef.get()
+        .then((addSnapshot) => {
+          if(addSnapshot.size === 0) {
+            //when twa does not exists
             const error = new Error('TWA does not exists');
             return next(error);
           }
-          if(twaSnapshot.size > 1) {
+          if(addSnapshot.size > 1) {
             let docIds = '';
-            twaSnapshot.forEach((twaDoc) => {
-              docIds = docIds + '_' + twaDoc.id + '_';
+            addSnapshot.forEach((addDoc) => {
+              docIds = docIds + '_' + addDoc.id + '_';
             });
               console.log('ATUL-LOG', '*TWA '+ ins.value +' have multiple match*', docIds);
               const error = new Error('SomeERRROR->TWA not unique');
               return next(error);
           }
-          twaSnapshot.forEach((twaDoc) => {
-            const twaData = twaDoc.data();
+          addSnapshot.forEach((addDoc) => {
+            const addData = addDoc.data();
             const str = `
-              <br>name = ${twaData.name}
-              <br>customName = ${twaData.customName}
-              <br>accessed = ${twaData.accessed}
-              <br>created = ${twaData.created}
-              <br>square.bl = (${twaData.square.bl.latitude},${twaData.square.bl.longitude})
-              <br>square.br = (${twaData.square.br.latitude},${twaData.square.br.longitude})
-              <br>square.tl = (${twaData.square.tl.latitude},${twaData.square.tl.longitude})
-              <br>square.tr = (${twaData.square.tr.latitude},${twaData.square.tr.longitude})
+              <br>name = ${addData.twa}
+              <br>customName = ${addData.customtwa}
+              <br>accessed = ${addData.lastaccess}
+              <br>created = ${addData.created}
+              <br>square.bl = (${addData.square.bl.latitude},${addData.square.bl.longitude})
+              <br>square.br = (${addData.square.br.latitude},${addData.square.br.longitude})
+              <br>square.tl = (${addData.square.tl.latitude},${addData.square.tl.longitude})
+              <br>square.tr = (${addData.square.tr.latitude},${addData.square.tr.longitude})
               `;
             return response.send(str);
           });
@@ -138,7 +159,7 @@ router.get('/:apiKey/:value', (request, response, next) => {
     // snapshot.forEach((doc) => {
     //   const data = doc.data();
     //   console.log(doc.id, '=>', data);
-    //   str = str + '<br>' + doc.id + '=><br>apiKey=' + typeof data.apiKey + '<br>callsLeft=' + typeof data.callsLeft + '<br>lastAccessed=' + typeof data.lastAccessed;
+    //   str = str + '<br>' + doc.id + '=><br>apiKey=' + typeof data.apiKey + '<br>callsleft=' + typeof data.callsleft + '<br>lastaccess=' + typeof data.lastaccess;
     // });
     // return response.send('This is data received => <br>' + str);
   })
