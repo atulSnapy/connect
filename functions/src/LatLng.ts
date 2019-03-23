@@ -7,12 +7,22 @@ class LatLng {
   fLat;fLng;
   //minimum lat and minimum lng
   minLat;minLng;
-  //
+  //square
+  square = {
+    bl:{lat:0,lng:0},
+    br:{lat:0,lng:0},
+    tl:{lat:0,lng:0},
+    tr:{lat:0,lng:0},
+    center:{lat:0,lng:0},
+    center2:{lat:0,lng:0}
+  };
   static pi = Dec.acos(-1);
   constructor(lat,lng) {
     this.lat = Dec(lat);
     this.lng = Dec(lng);
     this.formateLoc();
+    this.calculateSquarePoints();
+    this.toFloat();
   }
 
   //convert degree to radian
@@ -44,11 +54,74 @@ class LatLng {
     this.minLng = LatLng.getMinLng(this.fLat);
     this.fLng = this.minLng.mul(Dec.floor(this.lng.div(this.minLng)));
   }
+
+  calculateSquarePoints() {
+    this.square.bl.lat = this.fLat;
+    this.square.bl.lng = this.fLng;
+
+    this.square.br.lat = this.fLat;
+    this.square.br.lng = this.fLng.plus(this.minLng);
+
+    this.square.tl.lat = this.fLat.plus(this.minLat);
+    this.square.tl.lng = this.fLng;
+
+    this.square.tr.lat = this.fLat.plus(this.minLat);
+    this.square.tr.lng = this.fLng.plus(this.minLng);
+
+    this.square.center.lng = this.fLng.plus(this.minLng.div(2));
+    this.square.center.lat = this.fLat.plus(this.minLat.div(2));
+
+
+    this.square.center2.lat = Dec.add(this.square.bl.lat, this.square.tl.lat).div(2);
+    this.square.center2.lng = Dec.add(this.square.bl.lng, this.square.br.lng).div(2);
+  }
+  toFloat() {
+    this.lat = parseFloat(this.lat.toString());
+    this.lng = parseFloat(this.lng.toString());
+
+    this.minLat = parseFloat(this.minLat.toString());
+    this.minLng = parseFloat(this.minLng.toString());
+
+    this.fLat = parseFloat(this.fLat.toString());
+    this.fLng = parseFloat(this.fLng.toString());
+
+
+    this.square.bl.lat = parseFloat(this.square.bl.lat.toString());
+    this.square.bl.lng = parseFloat(this.square.bl.lng.toString());
+
+    this.square.br.lat = parseFloat(this.square.br.lat.toString());
+    this.square.br.lng = parseFloat(this.square.br.lng.toString());
+
+    this.square.tl.lat = parseFloat(this.square.tl.lat.toString());
+    this.square.tl.lng = parseFloat(this.square.tl.lng.toString());
+
+    this.square.tr.lat = parseFloat(this.square.tr.lat.toString());
+    this.square.tr.lng = parseFloat(this.square.tr.lng.toString());
+
+    this.square.center.lat = parseFloat(this.square.center.lat.toString());
+    this.square.center.lng = parseFloat(this.square.center.lng.toString());
+
+    this.square.center2.lat = parseFloat(this.square.center2.lat.toString());
+    this.square.center2.lng = parseFloat(this.square.center2.lng.toString());
+
+  }
 }
 
 export = LatLng;
-// const loc = new LatLng(12,12);
-// console.log("lat", loc.lat.toString());
-// console.log("lng", loc.lng.toString());
-// console.log("fLat", loc.fLat.toString());
-// console.log("fLng", loc.fLng.toString());
+// const loc = new LatLng(12,45);
+// console.log("lat", loc.lat);
+// console.log("lng", loc.lng);
+// console.log("fLat", loc.fLat);
+// console.log("fLng", loc.fLng);
+//
+// // console.log("SQUARE\n\n");
+//
+// // console.log(loc.square.tl.lat,',',loc.square.tl.lng,'------',loc.square.tr.lat,',',loc.square.tr.lng);
+// // console.log('           |                                |');
+// // console.log('           |                                |');
+// // console.log('           |                                |');
+// // console.log(loc.square.bl.lat,',',loc.square.bl.lng,'------',loc.square.br.lat,',',loc.square.br.lng);
+//
+// console.log("CENTER");
+// console.log(loc.square.center.lat, loc.square.center.lng)
+// console.log(loc.square.center2.lat, loc.square.center2.lng)
