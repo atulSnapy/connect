@@ -5,7 +5,6 @@ const express = require('express');
 const LatLng = require('./LatLng');
 const Dec = require('decimal.js');
 const Dictionary = require('./Dictionary');
-const api = require('./apiFunctions')
 
 const router = express.Router();
 
@@ -22,22 +21,36 @@ const processDoc = (data, center) => {
     loc = new firestore.GeoPoint(center.lat, center.lng);
   }
 
-  const header = "<h1>Connect</h1>";
-  let str = `${header}<br>twa = `;
+
+  let jsn ={
+    response: 'success',
+    message: 'ok',
+    data: {
+      customtwa: '',
+      twa: data.twa[0],
+      location: loc,
+      square: data.square,
+    }
+  };
   if(data.custom) {
-    str += `(${data.twa[1]})<=>`;
+    jsn.data.customtwa = data.twa[1];
   }
-  str += `
-  ${data.twa[0]}
-  <br>loc = (${loc.latitude},${loc.longitude})
-  <br>accessed = ${data.lastaccess}
-  <br>created = ${data.created}
-  <br>square.bl = (${data.square.bl.latitude},${data.square.bl.longitude})
-  <br>square.br = (${data.square.br.latitude},${data.square.br.longitude})
-  <br>square.tl = (${data.square.tl.latitude},${data.square.tl.longitude})
-  <br>square.tr = (${data.square.tr.latitude},${data.square.tr.longitude})
-  `;
-  return str;
+  // const header = "<h1>Connect</h1>";
+  // let str = `${header}<br>twa = `;
+  // if(data.custom) {
+  //   str += `(${data.twa[1]})<=>`;
+  // }
+  // str += `
+  // ${data.twa[0]}
+  // <br>loc = (${loc.latitude},${loc.longitude})
+  // <br>accessed = ${data.lastaccess}
+  // <br>created = ${data.created}
+  // <br>square.bl = (${data.square.bl.latitude},${data.square.bl.longitude})
+  // <br>square.br = (${data.square.br.latitude},${data.square.br.longitude})
+  // <br>square.tl = (${data.square.tl.latitude},${data.square.tl.longitude})
+  // <br>square.tr = (${data.square.tr.latitude},${data.square.tr.longitude})
+  // `;
+  return jsn;
 }
 
 
@@ -56,7 +69,8 @@ const createNewtwa = (response, data, loc) => {
           docIds = docIds + '_' + doc.id + '_';
         });
         console.log('ATUL-LOG', '*TWA '+ twa +' have multiple match*', docIds);
-        response.send("DB ERROR MULTIPLE VALUE SAME->", docIds);
+        const error = new Error("Db error m")
+        response.next(error);
       }
     if(snapshot.empty) {
       data.twa[0] = twa;
@@ -65,12 +79,13 @@ const createNewtwa = (response, data, loc) => {
       db.collection('addresses').add(data)
       .then(ref => {
         // newtwaCreated = true;
-        return response.send(processDoc(data, loc));
+        return response.json(processDoc(data, loc));
         console.log("ATUL-LOG New TWA added at", ref.id);
       })
       .catch(err => {
         console.log('ATUL-LOG', 'ERROR FOR ACTUAL TWA ADDITION->', err);
-        response.send("DB ERROR ->", err);
+        const error = new Error("Db error");
+        response.next(error);
       });
     } else {
       createNewtwa(response, data, loc);
@@ -78,7 +93,8 @@ const createNewtwa = (response, data, loc) => {
   })
   .catch(err => {
     console.log('ATUL-LOG', 'ERROR FOR TWAEXISTS', err);
-    response.send("DB ERROR ->", err);
+    const error = new Error("Db error");
+    response.next(error);
   });
 }
 
@@ -102,7 +118,7 @@ router.get('/:apiKey/:value', (request, response, next) => {
       console.log(val, "isNaN->", isNaN(val));
       if(isNaN(val) || val=="") {
         //when either lat or lng ar not number
-        const error = new Error('Lat and Lng can be number only');
+        const error = new Error('Invalid latitude or longitude value');
         return next(error);
       }
     }
@@ -114,7 +130,7 @@ router.get('/:apiKey/:value', (request, response, next) => {
     }
     if(arr[1]<-179 || arr[1]>179) {
       //when lng is <-179 or >179
-      const error = new Error('Lng value should be between [-179, 179]')
+      const error = new Error('Latitude range(-89,89) and Longitude range(-179,179)')
       return next(error);
     }
     //setting value type as "loc"
@@ -225,13 +241,13 @@ router.get('/:apiKey/:value', (request, response, next) => {
         doc.ref.update({
           lastaccess: new Date()
         });
-        return response.send(processDoc(doc.data(), loc));
+        return response.json(processDoc(doc.data(), loc));
       });
     })
     .catch(err => {
       console.log('ATUL-LOG', 'ERROR LOC', err);
-      const error = new Error('DB ERROR -> '+err);
-      return next(error);
+      const error = new Error("Db error");
+      response.next(error);
     });
   }
   // for value = twa
@@ -250,21 +266,21 @@ router.get('/:apiKey/:value', (request, response, next) => {
           docIds = docIds + '_' + doc.id + '_';
         });
         console.log('ATUL-LOG', '*TWA '+ ins.value +' have multiple match*', docIds);
-        const error = new Error('SomeERRROR->TWA not unique');
-        return next(error);
+        const error = new Error("Db error m");
+        response.next(error);
       }
       // for value = twa
       snapshot.forEach((doc) => {
         doc.ref.update({
           lastaccess: new Date()
         });
-        return response.send(processDoc(doc.data(), "center"));
+        return response.json(processDoc(doc.data(), "center"));
       });
     })
     .catch(err => {
       console.log('ATUL-LOG', 'ERROR TWA', err);
-      const error = new Error('DB ERROR -> '+err);
-      return next(error);
+      const error = new Error("Db error");
+      response.next(error);
     });
   }
 });
