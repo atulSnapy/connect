@@ -23,15 +23,15 @@ exports.connectapp = functions.https.onRequest(app);
 
 
 
-app.get('/', (request,response) => {
+app.get('/app', (request,response) => {
 	response.send("<h1>This is connect</h1>");
 });
 
-app.get('/welcome', (request, response) => {
+app.get('/app/welcome', (request, response) => {
 	response.send("<h1>welcome welcome welcome</h1>");
 });
 
-app.get('/normal/:lat/:lng', (request, response) => {
+app.get('/app/normal/:lat/:lng', (request, response) => {
 	const lat = parseFloat(request.params.lat);
 	const lng = parseFloat(request.params.lng);
   const loc = new LatLng(lat, lng);
@@ -39,7 +39,7 @@ app.get('/normal/:lat/:lng', (request, response) => {
 	response.send(str);
 });
 
-app.get('/read', (request, response) => {
+app.get('/app/read', (request, response) => {
   let str = "<h1>Hello Reader</h1>";
   db.collection('twa').where('name', '==','one.two.three').get()
   .then((snapshot) => {
