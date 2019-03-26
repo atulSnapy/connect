@@ -85,6 +85,7 @@ app.get('/read', (request, response) => {
 
 //for actual API
 app.use('/api', apiRoutes);
+// for Errors
 app.use((error, req, res, next) => {
   res.json({
 		response: 'Error',

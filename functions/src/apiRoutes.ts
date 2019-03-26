@@ -22,7 +22,7 @@ const processDoc = (data, center) => {
   }
 
 
-  let jsn ={
+  const jsn ={
     response: 'success',
     message: 'ok',
     data: {
@@ -100,6 +100,9 @@ const createNewtwa = (response, data, loc) => {
 
 //route for API
 router.get('/:apiKey/:value', (request, response, next) => {
+  // CORS
+  response.header("Access-Control-Allow-Origin", "*");
+  response.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   //input
   const ins = {
     apiKey : request.params.apiKey,
@@ -116,7 +119,7 @@ router.get('/:apiKey/:value', (request, response, next) => {
       arr[i] = arr[i].trim();
       const val = arr[i];
       console.log(val, "isNaN->", isNaN(val));
-      if(isNaN(val) || val=="") {
+      if(isNaN(val) || val==="") {
         //when either lat or lng ar not number
         const error = new Error('Invalid latitude or longitude value');
         return next(error);
